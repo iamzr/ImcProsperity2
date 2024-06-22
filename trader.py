@@ -27,7 +27,7 @@ class Trader(ITrader):
         if not amethsts_orders:
             return
 
-        current_position = state.position[AMETHYSTS] if state.position.get(AMETHYSTS) else 0
+        current_position = state.position.get(AMETHYSTS, 0)
 
         # buy low
         # if ask price is less than or equal to 9994, submit buy order
