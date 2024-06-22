@@ -53,7 +53,7 @@ class Trader(ITrader):
                 if abs(current_position + sell_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
-                state.position[AMETHYSTS] = current_position +  sell_quantity # sell quantity is negative
+                current_position =+  sell_quantity # sell quantity is negative
                 
                 order = Order(
                     symbol=AMETHYSTS,
@@ -81,8 +81,8 @@ class Trader(ITrader):
                 if abs(current_position + buy_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
-                state.position[AMETHYSTS] = current_position + buy_quantity # sell quantity is negative
-                
+                current_position =+ buy_quantity                 
+
                 order = Order(
                     symbol=AMETHYSTS,
                     price=bid_price,
