@@ -25,7 +25,7 @@ class ITrader(ABC):
 class Trader(ITrader):
     def run(self, state: TradingState):
 
-        orders_to_make = []
+        orders_to_make = {}
 
 
         amethsts_orders = state.order_depths.get(AMETHYSTS)
@@ -39,12 +39,11 @@ class Trader(ITrader):
         # if ask price is less than or equal to 9994, submit buy order
         sell_orders =  amethsts_orders.sell_orders
 
-        sell_prices = list(sell_orders.keys())
-        sell_prices.sort()
-
-        for sell_price in sell_prices:
+        # not we assume that the ask prices are already sorted in the dictionary
+        for ask_price, sell_quantity in sell_orders.items():
             # for prices less than or equal to 9994 it makes sense to buy them if people are selling
-            if sell_price <= 9994:
+            if ask_price < 10_000:
+
                 #create order
 
                 # calcaulate quatitiy you want to buy based on current position
@@ -53,15 +52,16 @@ class Trader(ITrader):
                 if abs(current_position + sell_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
-                current_position =+  sell_quantity # sell quantity is negative
+                current_position =+ sell_quantity # sell quantity is negative
                 
+                print("BUY", str(-sell_quantity) + "x", ask_price)
                 order = Order(
                     symbol=AMETHYSTS,
-                    price=sell_price,
-                    quantity=sell_quantity
+                    price=ask_price,
+                    quantity=-sell_quantity
                 )
 
-                orders_to_make.append(order)
+                orders_to_make.setdefault(AMETHYSTS, []).append(order)
 
 
         # sell high,
@@ -83,14 +83,19 @@ class Trader(ITrader):
 
                 current_position =+ buy_quantity                 
 
+                print("SELL", str(buy_quantity) + "x", bid_price)
                 order = Order(
                     symbol=AMETHYSTS,
                     price=bid_price,
-                    quantity=buy_quantity
+                    quantity=-buy_quantity
                 )
 
-                orders_to_make.append(order)
+                orders_to_make.setdefault(AMETHYSTS, []).append(order)
 
 
-        logger.flush(state, {AMETHYSTS: orders_to_make}, None, None)
-        return {AMETHYSTS: orders_to_make}, None, None
+        traderData = "SAMPLE" # String value holding Trader state data required. It will be delivered as TradingState.traderData on next execution.
+        
+        conversions = 1
+
+        logger.flush(state, orders_to_make, conversions, traderData)
+        return orders_to_make, conversions, traderData
