@@ -66,33 +66,39 @@ class Trader(ITrader):
 
         # sell high,
         # if ask price is greater to equal to 1004 sell
-        bid_orders = amethsts_orders.buy_orders
-        bid_prices = list(bid_orders.keys())
-        bid_prices.sort(reverse=True)
+        buy_orders = amethsts_orders.buy_orders
 
-        for bid_price in bid_prices:
-            # for prices greater than or equal to 10004 it makes sense to sell if people are buying 
-            if bid_price >= 10004:
+        # assuming the buy orders are already sorted 
+        for bid_price, buy_quantity in buy_orders.items():
+            # for prices greater than or equal to 10004 it makes sense to sell them if people are buying
+            if bid_price > 10_000:
                 #create order
 
                 # calcaulate quatitiy you want to buy based on current position
-                buy_quantity = bid_orders[bid_price]
-
                 if abs(current_position + buy_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
                 current_position =+ buy_quantity                 
 
                 print("SELL", str(buy_quantity) + "x", bid_price)
+                print("SELL", str(buy_quantity) + "x", bid_price)
                 order = Order(
                     symbol=AMETHYSTS,
                     price=bid_price,
                     quantity=-buy_quantity
+                    quantity=-buy_quantity
                 )
 
                 orders_to_make.setdefault(AMETHYSTS, []).append(order)
+                orders_to_make.setdefault(AMETHYSTS, []).append(order)
 
 
+        traderData = "SAMPLE" # String value holding Trader state data required. It will be delivered as TradingState.traderData on next execution.
+        
+        conversions = 1
+
+        logger.flush(state, orders_to_make, conversions, traderData)
+        return orders_to_make, conversions, traderData
         traderData = "SAMPLE" # String value holding Trader state data required. It will be delivered as TradingState.traderData on next execution.
         
         conversions = 1
