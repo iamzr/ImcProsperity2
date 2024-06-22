@@ -44,7 +44,7 @@ class Trader(ITrader):
 
         for sell_price in sell_prices:
             # for prices less than or equal to 9994 it makes sense to buy them if people are selling
-            if sell_price <= 9994:
+            if sell_price >= 9994:
                 #create order
 
                 # calcaulate quatitiy you want to buy based on current position
@@ -53,7 +53,7 @@ class Trader(ITrader):
                 if abs(current_position) + sell_quantity > POSITION_LIMITS[AMETHYSTS]:
                     break
 
-                state.position[AMETHYSTS] = current_position +  sell_quantity # sell quantity is negative
+                state.position[AMETHYSTS] = sell_quantity # sell quantity is negative
                 
                 order = Order(
                     symbol=AMETHYSTS,
