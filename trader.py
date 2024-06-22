@@ -1,7 +1,13 @@
 from abc import ABC
 from typing import List
 
+# from datamodel import Order, Symbol, TradingState
+from logger import Logger
 from datamodel import Order, Symbol, TradingState
+
+
+
+logger = Logger()
 
 AMETHYSTS: Symbol = "AMETHYSTS"
 STARFRUIT: Symbol = "STARFRUIT"
@@ -85,4 +91,6 @@ class Trader(ITrader):
 
                 orders_to_make.append(order)
 
+
+        logger.flush(state, {AMETHYSTS: orders_to_make}, None, None)
         return {AMETHYSTS: orders_to_make}, None, None
