@@ -4,7 +4,6 @@ from typing import List
 import jsonpickle
 import pandas as pd
 
-# from datamodel import Order, Symbol, TradingState
 from products import AMETHYSTS, STARFRUIT
 from logger import Logger
 from datamodel import Order, OrderDepth, Symbol, TradingState
@@ -47,36 +46,38 @@ def ema(price_history: list[float], span: int) -> int:
     data_series = pd.Series(price_history[-span:])
     return int(data_series.ewm(span=span, adjust=False).mean().tail(1))
 
+def round_1(state: TradingState, traderData: dict, orders_to_make: dict):
+    # amethysts 
+    acceptable_bid_price_amethysts = 10_000
+    acceptable_ask_price_amethysts = 10_000
+
+    orders_to_make[AMETHYSTS] = strategy_1(state=state, product=AMETHYSTS, acceptable_ask_price=acceptable_ask_price_amethysts, acceptable_bid_price=acceptable_bid_price_amethysts)
+
+    # star fruit
+    starfruit_span = 6
+    if traderData.get("STARTFRUIT_PRICES"):
+        price_of_startfruit = ema(traderData["STARTFRUIT_PRICES"], starfruit_span)
+
+        orders_to_make[STARFRUIT] = strategy_1(state=state, product=STARFRUIT, acceptable_ask_price=price_of_startfruit, acceptable_bid_price=price_of_startfruit)
+
+        
+    starfruit_best_ask = min(state.order_depths[STARFRUIT].sell_orders)
+    starfruit_best_bid = max(state.order_depths[STARFRUIT].buy_orders)
+    starfruit_midprice = (starfruit_best_ask + starfruit_best_bid) / 2
+
+    starfruit_prices = traderData.setdefault("STARTFRUIT_PRICES", [])
+    if len(starfruit_prices) > starfruit_span:
+        starfruit_prices.pop(0)
+        
+    starfruit_prices.append(starfruit_midprice)
 
 class Trader(ITrader):
     def run(self, state: TradingState):
         traderData: dict = jsonpickle.decode(state.traderData) if state.traderData else {}
         orders_to_make = {}
 
-        # amethysts 
-        acceptable_bid_price_amethysts = 10_000
-        acceptable_ask_price_amethysts = 10_000
-
-        orders_to_make[AMETHYSTS] = strategy_1(state=state, product=AMETHYSTS, acceptable_ask_price=acceptable_ask_price_amethysts, acceptable_bid_price=acceptable_bid_price_amethysts)
-
-        # star fruit
-        starfruit_span = 6
-        if traderData.get("STARTFRUIT_PRICES"):
-            price_of_startfruit = ema(traderData["STARTFRUIT_PRICES"], starfruit_span)
-
-            orders_to_make[STARFRUIT] = strategy_1(state=state, product=STARFRUIT, acceptable_ask_price=price_of_startfruit, acceptable_bid_price=price_of_startfruit)
-
+        round_1(state=state, traderData=traderData, orders_to_make=orders_to_make)
         
-        starfruit_best_ask = min(state.order_depths[STARFRUIT].sell_orders)
-        starfruit_best_bid = max(state.order_depths[STARFRUIT].buy_orders)
-        starfruit_midprice = (starfruit_best_ask + starfruit_best_bid) / 2
-
-        starfruit_prices = traderData.setdefault("STARTFRUIT_PRICES", [])
-        if len(starfruit_prices) > starfruit_span:
-            starfruit_prices.pop(0)
-        
-        starfruit_prices.append(starfruit_midprice)
-
         # traderData = "SAMPLE" # String value holding Trader state data required. It will be delivered as TradingState.traderData on next execution.
         traderData = jsonpickle.encode(traderData)
         conversions = 1
