@@ -5,18 +5,11 @@ import jsonpickle
 import pandas as pd
 
 # from datamodel import Order, Symbol, TradingState
+from products import AMETHYSTS, STARFRUIT
 from logger import Logger
 from datamodel import Order, OrderDepth, Symbol, TradingState
 
 logger = Logger()
-
-AMETHYSTS: Symbol = "AMETHYSTS"
-STARFRUIT: Symbol = "STARFRUIT"
-
-POSITION_LIMITS = {
-    AMETHYSTS : 20,
-    STARFRUIT : 20,
-}
 
 class ITrader(ABC):
     def run(self, state: TradingState) -> dict[Symbol, List[Order]]:
@@ -42,7 +35,7 @@ def strategy_1(state: TradingState, product: Symbol, acceptable_bid_price: int, 
         if int(best_bid) > acceptable_bid_price:
             print("SELL", str(best_bid_amount) + "x", best_bid)
             orders.append(Order(product, best_bid, -best_bid_amount))
-            
+    
     return orders
 
 def ema(price_history: list[float], span: int) -> int:
