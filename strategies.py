@@ -1,7 +1,16 @@
+import pandas as pd
 from datamodel import Order, OrderDepth, Symbol, TradingState
 from orders import Orders
 from products import CHOCOLATE, ROSES, STRAWBERRIES
 
+def ema(price_history: list[float], span: int) -> int:
+    """
+    Method to calculate exponential moving average.
+
+    :param span: the number of periods for the ema.
+    """
+    data_series = pd.Series(price_history[-span:])
+    return int(data_series.ewm(span=span, adjust=False).mean().tail(1))
 
 def acceptable_price_strategy(state: TradingState, orders: Orders, product: Symbol, acceptable_bid_price: int, acceptable_ask_price: int):
     """
@@ -27,9 +36,7 @@ def acceptable_price_strategy(state: TradingState, orders: Orders, product: Symb
             orders.place_order(product, best_bid, -best_bid_amount)
 
 
-def round_3_arbitrage(state, combined_product, component_products):
-    print("here")
-    orders_to_make = {}
+def round_3_arbitrage(state, orders: Orders, combined_product, component_products):
     products = [combined_product]
     products.extend(component_products)
 
@@ -39,7 +46,7 @@ def round_3_arbitrage(state, combined_product, component_products):
     for product in products:
         order_depth: OrderDepth = state.order_depths.get(product)
         if not order_depth:
-            return []
+            return
 
         best_asks[product] = list(order_depth.sell_orders.items())[0]
         best_bids[product] = list(order_depth.buy_orders.items())[0]
@@ -60,12 +67,10 @@ def round_3_arbitrage(state, combined_product, component_products):
     if lowest_asks_of_components < highest_bid_of_combined:
         # place buy orders for components at lowest asks
         for product in component_products:
-            print("BUY", str(-best_asks[product][1]) + "x", best_asks[product][0])
-            orders_to_make.setdefault(product, []).append(Order(product, best_asks[product][0], -amount))
+            orders.place_order(product, best_asks[product][0], -amount)
 
         # place sell orders for combined at highest bid
-        print("SELL", str(best_bids[combined_product][1]) + "x", best_bids[product][0])
-        orders_to_make.setdefault(product, []).append(Order(product, best_bids[combined_product][0], amount))
+        orders.place_order(product, best_bids[combined_product][0], amount)
 
     # lowest_asks_of_combined = best_asks[combined_product][0]
     # highest_bid_of_components = sum(best_bids[product][0] for product in component_products)
@@ -79,5 +84,3 @@ def round_3_arbitrage(state, combined_product, component_products):
     #     # place sell orders for combined at highest bid
     #     print("BUY", str(best_asks[combined_product][1]) + "x", best_asks[product])
     #     orders_to_make.setdefault(product, []).append(Order(product, best_asks[combined_product][0], -best_asks[combined_product][1]))
-
-    return orders_to_make
