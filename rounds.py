@@ -1,8 +1,8 @@
 from datamodel import TradingState
 from orders import Orders
 from products import AMETHYSTS, CHOCOLATE, GIFT_BASKET, ROSES, STARFRUIT, STRAWBERRIES
-from strategies import acceptable_price_strategy
-from trader import arbitrage, ema
+from strategies import acceptable_price_strategy, round_3_arbitrage
+from trader import ema
 
 
 def round_1(state: TradingState, traderData: dict, orders: Orders):
@@ -35,6 +35,6 @@ def round_3(state: TradingState, traderData: dict, orders_to_make: dict):
     component_products = [CHOCOLATE, STRAWBERRIES, ROSES]
     combined_product = GIFT_BASKET
 
-    orders = arbitrage(state, combined_product, component_products)
+    orders = round_3_arbitrage(state, combined_product, component_products)
 
     orders_to_make.update(orders)
