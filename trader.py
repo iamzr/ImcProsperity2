@@ -50,7 +50,7 @@ class Trader(ITrader):
                 # calcaulate quatitiy you want to buy based on current position
                 sell_quantity = sell_orders[sell_price]
 
-                if abs(current_position) + sell_quantity > POSITION_LIMITS[AMETHYSTS]:
+                if abs(current_position + sell_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
                 state.position[AMETHYSTS] = current_position +  sell_quantity # sell quantity is negative
@@ -68,17 +68,17 @@ class Trader(ITrader):
         # if ask price is greater to equal to 1004 sell
         bid_orders = amethsts_orders.buy_orders
         bid_prices = list(bid_orders.keys())
-        bid_prices.sort()
+        bid_prices.sort(reverse=True)
 
         for bid_price in bid_prices:
-            # for prices less than or equal to 9994 it makes sense to buy them if people are selling
-            if bid_price <= 10004:
+            # for prices greater than or equal to 10004 it makes sense to sell if people are buying 
+            if bid_price >= 10004:
                 #create order
 
                 # calcaulate quatitiy you want to buy based on current position
                 buy_quantity = bid_orders[bid_price]
 
-                if abs(current_position) + buy_quantity > POSITION_LIMITS[AMETHYSTS]:
+                if abs(current_position + buy_quantity) > POSITION_LIMITS[AMETHYSTS]:
                     break
 
                 state.position[AMETHYSTS] = current_position + buy_quantity # sell quantity is negative
