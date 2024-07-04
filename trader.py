@@ -4,31 +4,11 @@ from typing import List
 import jsonpickle
 import pandas as pd
 
-from products import AMETHYSTS, STARFRUIT
+from orders import Orders
 from logger import Logger
 from datamodel import Order, OrderDepth, Symbol, TradingState
 
 logger = Logger()
-
-class Orders():
-    def __init__(self):
-        self._orders = {}
-    
-    def get_orders(self):
-        return self._orders 
-    
-    # def __getitem__(self, symbol):
-    #     return self._orders.setdefault(symbol, [])
-    
-    def place_order(self, symbol, price, quantity):
-        BUY_SELL = None
-        if quantity> 0:
-            BUY_SELL = "BUY"
-        elif quantity< 0:
-            BUY_SELL = "SELL"
-        
-        print(f"{BUY_SELL} {quantity} at {price}")
-        self._orders.setdefault(symbol, []).append(Order(symbol, price, quantity))  
 
 class ITrader(ABC):
     def run(self, state: TradingState) -> dict[Symbol, List[Order]]:
