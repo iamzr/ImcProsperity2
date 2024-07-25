@@ -54,31 +54,43 @@ def pairs_trading(state: TradingState, orders: Orders, combined_product, compone
         mid_price[product] = (best_asks[product][0] + best_bids[product][0]) / 2
 
     
-    predicted_price = get_gift_basket_price(mid_price[CHOCOLATE], mid_price[ROSES], mid_price[STRAWBERRIES])
+    components_price = get_gift_basket_price(mid_price[CHOCOLATE], mid_price[ROSES], mid_price[STRAWBERRIES])
 
-    spread = mid_price[GIFT_BASKET] - predicted_price
+    spread = mid_price[GIFT_BASKET] - components_price
 
     SPREAD_MEAN = 376.0862
     SPREAD_STD = 76.354
     z_score = (spread - SPREAD_MEAN) / SPREAD_STD
 
-    print(z_score)
 
-    threshold = 1.645
+    threshold = 2
 
     if z_score > threshold:
-        orders.place_order(GIFT_BASKET,best_asks[product][0], best_asks[product][1])
+        orders.place_order(GIFT_BASKET,best_bids[GIFT_BASKET][0], -best_bids[GIFT_BASKET][1])
+        # orders.place_order(ROSES,best_asks[ROSES][0], -best_asks[ROSES][1])
+        # orders.place_order(CHOCOLATE,best_asks[CHOCOLATE][0], -best_asks[CHOCOLATE][1])
+        # orders.place_order(STRAWBERRIES,best_asks[STRAWBERRIES][0], -best_asks[STRAWBERRIES][1])
+        print(z_score)
+        # orders.place_order(CHOCOLATE,best_bids[CHOCOLATE][0], best_bids[CHOCOLATE][1])
+        # orders.place_order(GIFT_BASKET,best_asks[product][0], best_asks[product][1])
     elif z_score < -threshold:
-        orders.place_order(GIFT_BASKET,best_bids[product][0], best_asks[product][1])
-    elif z_score == 0:
-        pos = state.position[GIFT_BASKET]
-        if pos > 0:
-            orders.place_order(GIFT_BASKET,best_bids[product][0], -pos)
-        elif pos < 0:
-            orders.place_order(GIFT_BASKET,best_asks[product][0], -pos)
+        print(z_score)
+        orders.place_order(GIFT_BASKET,best_asks[GIFT_BASKET][0], -best_asks[GIFT_BASKET][1])
+        # orders.place_order(ROSES,best_bids[ROSES][0], -best_bids[ROSES][1])
+        # orders.place_order(CHOCOLATE,best_bids[CHOCOLATE][0], -best_bids[CHOCOLATE][1])
+        # orders.place_order(STRAWBERRIES,best_bids[STRAWBERRIES][0], -best_bids[STRAWBERRIES][1])
+    elif isclose(z_score, 0.0, abs_tol=0.1):
 
+        for product in products:
+            pos = state.position.get(product)
 
+            if not pos:
+                continue
 
+            if pos > 0:
+                orders.place_order(product,best_bids[product][0], -pos)
+            elif pos < 0:
+                orders.place_order(product,best_asks[product][0], -pos)
     
 
 def get_gift_basket_price(chocolate, roses, strawberries):
