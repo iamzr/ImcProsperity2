@@ -7,7 +7,7 @@ from products import CHOCOLATE, GIFT_BASKET, ROSES, STRAWBERRIES
 from products import CHOCOLATE, ROSES, STRAWBERRIES
 from math import exp, log, pi
 
-def ema(price_history: list[float], span: int) -> int:
+def _ema(price_history: list[float], span: int) -> int:
     """
     Method to calculate exponential moving average.
 
@@ -15,6 +15,22 @@ def ema(price_history: list[float], span: int) -> int:
     """
     data_series = pd.Series(price_history[-span:])
     return int(data_series.ewm(span=span, adjust=False).mean().tail(1))
+
+def ema(state, trader_data, product: Symbol, span: int) -> int | None:
+    key = f"{product}_PRICES"
+
+    price = _ema(trader_data[key], span) if trader_data.get(key) else None
+
+    mid_price = get_mid_price(state, product) 
+    prices = trader_data.setdefault(key, [])
+
+    if len(prices) > span:
+        prices.pop(0)
+
+    prices.append(mid_price)
+
+    return price
+
 
 def get_best_ask(state: TradingState, symbol: Symbol):
     order_depth = state.order_depths.get(symbol)
@@ -59,21 +75,14 @@ class AcceptablePriceWithEmaStrategy(Strategy):
         self._span = span
     
     def run(self):
-        key = f"{self._product}_PRICES"
-        if self._trading_data.get(key):
-            price = ema(self._trading_data[key], self._span)
+        price = ema(self._state, self._trading_data, self._product, self._span)
+        if price is None:
+            return 
 
-            s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=self._product, acceptable_ask_price=price, acceptable_bid_price=price)
-            s.run()
+        s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=self._product, acceptable_ask_price=price, acceptable_bid_price=price)
+        s.run()
 
 
-        mid_price = get_mid_price(self._state, self._product) 
-        prices = self._trading_data .setdefault(key, [])
-
-        if len(prices) > self._span:
-            prices.pop(0)
-
-        prices.append(mid_price)
 
 class AcceptablePriceStrategy(Strategy):
     """
