@@ -1,7 +1,7 @@
 from datamodel import TradingState
 from orders import Orders
 from products import AMETHYSTS, CHOCOLATE, GIFT_BASKET, ROSES, STARFRUIT, STRAWBERRIES
-from strategies import acceptable_price_strategy, ema, round_3_arbitrage
+from strategies import acceptable_price_strategy, ema, pairs_trading, round_3_arbitrage
 
 
 def round_1(state: TradingState, traderData: dict, orders: Orders):
@@ -43,4 +43,5 @@ def round_3(state: TradingState, traderData: dict, orders: Orders):
     if not state.order_depths.get(GIFT_BASKET):
         return
 
-    round_3_arbitrage(state, orders, combined_product, component_products)
+    # round_3_arbitrage(state, orders, combined_product, component_products)
+    pairs_trading(state, orders, combined_product, component_products)
