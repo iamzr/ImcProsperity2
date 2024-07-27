@@ -66,13 +66,13 @@ def round_4(state: TradingState, traderData: dict, orders: Orders):
 
     # for coconut coupons
     strike_price = 10_000
-    time_to_maturity = 250
+    time_to_maturity = 250/365
 
     risk_free_rate = 0.0
-    vol = 48 # volativity of the coconuts
+    vol = 0.19 # volativity of the coconuts
 
-    # price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
-    price_of_coupons = 600
+    price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
+    # price_of_coupons = 600
 
     print("here", coupons_midprice, price_of_coupons)
 
@@ -94,4 +94,4 @@ def round_4(state: TradingState, traderData: dict, orders: Orders):
                               spread_std=SPREAD_STD,
                               threshold=2
                               )
-    s.run()
+    # s.run()
