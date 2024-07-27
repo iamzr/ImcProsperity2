@@ -7,7 +7,7 @@ import pandas as pd
 from orders import Orders
 from logger import Logger
 from datamodel import Order, Symbol, TradingState
-from rounds import round_1, round_3
+from rounds import round_1, round_3, round_4
 
 logger = Logger()
 
@@ -23,6 +23,7 @@ class Trader(ITrader):
 
         round_1(state=state, traderData=traderData, orders=orders)
         round_3(state=state, traderData=traderData, orders=orders)
+        round_4(state=state, traderData=traderData, orders=orders)
         
         # traderData = "SAMPLE" # String value holding Trader state data required. It will be delivered as TradingState.traderData on next execution.
         traderData = jsonpickle.encode(traderData)
