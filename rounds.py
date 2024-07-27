@@ -1,7 +1,7 @@
 from datamodel import TradingState
 from orders import Orders
 from products import AMETHYSTS, CHOCOLATE, COCONUT, COCONUT_COUPON, GIFT_BASKET, ROSES, STARFRUIT, STRAWBERRIES
-from strategies import acceptable_price_strategy, ema, pairs_trading, vanilla_call_price 
+from strategies import AcceptablePriceStrategy, AcceptablePriceWithEmaStrategy, SpreadTradingStrategy, VanillaOptionsPricing, ema, get_mid_price 
 
 
 def round_1(state: TradingState, traderData: dict, orders: Orders):
@@ -12,68 +12,68 @@ def round_1(state: TradingState, traderData: dict, orders: Orders):
     acceptable_bid_price_amethysts = 10_000
     acceptable_ask_price_amethysts = 10_000
 
-    acceptable_price_strategy(state=state, orders=orders, product=AMETHYSTS, acceptable_ask_price=acceptable_ask_price_amethysts, acceptable_bid_price=acceptable_bid_price_amethysts)
+    s = AcceptablePriceStrategy(state=state, orders=orders, product=AMETHYSTS, acceptable_ask_price=acceptable_ask_price_amethysts, acceptable_bid_price=acceptable_bid_price_amethysts)
+    s.run()
 
     # star fruit
-    if not state.order_depths.get(STARFRUIT):
-        return
 
     starfruit_span = 6
-    if traderData.get("STARTFRUIT_PRICES"):
-        price_of_startfruit = ema(traderData["STARTFRUIT_PRICES"], starfruit_span)
 
-        acceptable_price_strategy(state=state, orders=orders, product=STARFRUIT, acceptable_ask_price=price_of_startfruit, acceptable_bid_price=price_of_startfruit)
+    s = AcceptablePriceWithEmaStrategy(state=state, orders=orders, trader_data=traderData, product=STARFRUIT, span=starfruit_span)
+    s.run()
 
-
-    starfruit_best_ask = min(state.order_depths[STARFRUIT].sell_orders)
-    starfruit_best_bid = max(state.order_depths[STARFRUIT].buy_orders)
-    starfruit_midprice = (starfruit_best_ask + starfruit_best_bid) / 2
-
-    starfruit_prices = traderData.setdefault("STARTFRUIT_PRICES", [])
-    if len(starfruit_prices) > starfruit_span:
-        starfruit_prices.pop(0)
-
-    starfruit_prices.append(starfruit_midprice)
-
+def get_gift_basket_price(chocolate, roses, strawberries):
+    return 4 * chocolate + roses + 6 * strawberries
 
 def round_3(state: TradingState, traderData: dict, orders: Orders):
     component_products = [CHOCOLATE, STRAWBERRIES, ROSES]
-    combined_product = GIFT_BASKET
+    combined_product = [GIFT_BASKET]
 
-    if not state.order_depths.get(GIFT_BASKET):
+    gift_basket_price = get_mid_price(state, GIFT_BASKET)
+    
+    if gift_basket_price is None:
         return
 
-    # round_3_arbitrage(state, orders, combined_product, component_products)
-    pairs_trading(state, orders, combined_product, component_products)
+    components_price = get_gift_basket_price(get_mid_price(state, CHOCOLATE), get_mid_price(state, ROSES), get_mid_price(state, STRAWBERRIES))
+
+    SPREAD_MEAN = 376.0862
+    SPREAD_STD = 76.354
+
+    s = SpreadTradingStrategy(state=state, 
+                              orders=orders, 
+                              portfolio_1=combined_product, 
+                              portfolio_1_price=int(gift_basket_price),
+                              portfolio_2=component_products,
+                              portfolio_2_price=int(components_price),
+                              spread_mean=SPREAD_MEAN,
+                              spread_std=SPREAD_STD,
+                              threshold=1
+                              )
+    s.run()
 
 
 def round_4(state: TradingState, traderData: dict, orders: Orders):
-    if not state.order_depths.get(COCONUT) or not state.order_depths.get(COCONUT_COUPON):
+
+    coconuts_midprice = get_mid_price(state, COCONUT) # price of coconuts
+
+    if coconuts_midprice is None:
         return
-    
-    
+
+    coupons_midprice = get_mid_price(state, COCONUT_COUPON) 
+
+    if coupons_midprice is None:
+        return
+
     # for coconut coupons
     strike_price = 10_000
     time_to_maturity = 250
 
-
-    coconuts_best_ask = min(state.order_depths[COCONUT].sell_orders)
-    coconuts_best_bid = max(state.order_depths[COCONUT].buy_orders)
-    coconuts_midprice = (coconuts_best_ask + coconuts_best_bid) / 2 # price of coconuts
-
-    coupons_best_ask = min(state.order_depths[COCONUT_COUPON].sell_orders)
-    if not state.order_depths[COCONUT_COUPON].buy_orders:
-        return 
-
-    coupons_best_bid = max(state.order_depths[COCONUT_COUPON].buy_orders)
-    coupons_midprice = (coupons_best_ask + coupons_best_bid) / 2 # price of coconuts
-
     risk_free_rate = 0.0
     vol = 48 # volativity of the coconuts
 
-    price_of_coupons = vanilla_call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
-    # price_of_coupons = 600
+    price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
 
     print("here", coupons_midprice, price_of_coupons)
 
-    acceptable_price_strategy(state=state, orders=orders, product=COCONUT_COUPON, acceptable_ask_price=price_of_coupons + 200, acceptable_bid_price=price_of_coupons - 200)
+    s = AcceptablePriceStrategy(state=state, orders=orders, product=COCONUT_COUPON, acceptable_ask_price=price_of_coupons, acceptable_bid_price=price_of_coupons)
+    s.run()
