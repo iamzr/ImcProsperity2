@@ -146,7 +146,7 @@ class SpreadTradingStrategy(Strategy):
                     self._orders.place_order(product, best_bid, -pos)
                 elif pos < 0:
                     best_ask, _ = get_best_ask(self._state, product)
-                    self._orders.place_order(product,best_ask, -pos)
+                    self._orders.place_order(product, best_ask, -pos)
 
 class VanillaOptionsPricing():
     def _norm_cdf(self, x):

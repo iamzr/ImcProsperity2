@@ -71,9 +71,27 @@ def round_4(state: TradingState, traderData: dict, orders: Orders):
     risk_free_rate = 0.0
     vol = 48 # volativity of the coconuts
 
-    price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
+    # price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
+    price_of_coupons = 600
 
     print("here", coupons_midprice, price_of_coupons)
 
     s = AcceptablePriceStrategy(state=state, orders=orders, product=COCONUT_COUPON, acceptable_ask_price=price_of_coupons, acceptable_bid_price=price_of_coupons)
+    s.run()
+
+    # part 2
+    SPREAD_MEAN = 9000.263400
+    SPREAD_STD = 50.559215
+    # SPREAD_MEAN = 9300 SPREAD_STD = 2k
+
+    s = SpreadTradingStrategy(state=state, 
+                              orders=orders, 
+                              portfolio_1=[COCONUT], 
+                              portfolio_1_price=int(coconuts_midprice),
+                              portfolio_2=[COCONUT_COUPON],
+                              portfolio_2_price=int(coupons_midprice),
+                              spread_mean=SPREAD_MEAN,
+                              spread_std=SPREAD_STD,
+                              threshold=2
+                              )
     s.run()
