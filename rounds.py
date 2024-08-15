@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datamodel import TradingState
 from orders import Orders
 from products import AMETHYSTS, CHOCOLATE, COCONUT, COCONUT_COUPON, GIFT_BASKET, ROSES, STARFRUIT, STRAWBERRIES
-from strategies import AcceptablePriceStrategy, AcceptablePriceWithEmaStrategy, SpreadTradingStrategy, VanillaOptionsPricing, ema, get_mid_price 
+from strategies import AcceptablePriceStrategy, AcceptablePriceWithEmaStrategy, SpreadTradingStrategy, VanillaOptionsPricing, get_mid_price 
 
 class Round(ABC):
     def __init__(self, state: TradingState, traderData: dict, orders: Orders):
@@ -26,14 +26,24 @@ class Round1(Round):
         acceptable_bid_price_amethysts = 10_000
         acceptable_ask_price_amethysts = 10_000
 
-        s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=AMETHYSTS, acceptable_ask_price=acceptable_ask_price_amethysts, acceptable_bid_price=acceptable_bid_price_amethysts)
+        s = AcceptablePriceStrategy(state=self._state,
+                                    orders=self._orders,
+                                    product=AMETHYSTS,
+                                    acceptable_ask_price=acceptable_ask_price_amethysts,
+                                    acceptable_bid_price=acceptable_bid_price_amethysts,
+                                    best_only=False)
         s.run()
 
         # star fruit
 
         starfruit_span = 6
 
-        s = AcceptablePriceWithEmaStrategy(state=self._state, orders=self._orders, trader_data=self._trader_data, product=STARFRUIT, span=starfruit_span)
+        s = AcceptablePriceWithEmaStrategy(state=self._state,
+                                           orders=self._orders,
+                                           trader_data=self._trader_data,
+                                           product=STARFRUIT,
+                                           span=starfruit_span,
+                                           best_only=False)
         s.run()
 
 def get_gift_basket_price(chocolate, roses, strawberries):
@@ -84,14 +94,17 @@ class Round4(Round):
         time_to_maturity = 250/365
 
         risk_free_rate = 0.0
-        vol = 0.19 # volativity of the coconuts
+        vol = 0.19 # volatility of the coconuts
 
         price_of_coupons = VanillaOptionsPricing().call_price(coconuts_midprice, strike_price, risk_free_rate, vol, time_to_maturity)
         # price_of_coupons = 600
 
-        print("here", coupons_midprice, price_of_coupons)
-
-        s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=COCONUT_COUPON, acceptable_ask_price=price_of_coupons, acceptable_bid_price=price_of_coupons)
+        s = AcceptablePriceStrategy(state=self._state,
+                                    orders=self._orders,
+                                    product=COCONUT_COUPON,
+                                    acceptable_ask_price=price_of_coupons,
+                                    acceptable_bid_price=price_of_coupons,
+                                    )
         s.run()
 
         # part 2

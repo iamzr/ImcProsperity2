@@ -31,7 +31,6 @@ def ema(state, trader_data, product: Symbol, span: int) -> int | None:
 
     return price
 
-
 def get_best_ask(state: TradingState, symbol: Symbol):
     order_depth = state.order_depths.get(symbol)
 
@@ -63,49 +62,63 @@ class Strategy(ABC):
         self._orders = orders
 
     @abstractmethod    
-    def run():
+    def run(self):
         raise NotImplementedError()
-        
-    
+       
 class AcceptablePriceWithEmaStrategy(Strategy):
-    def __init__(self, state: TradingState, orders: Orders, trader_data: dict, product: Symbol, span: int) -> None:
+    def __init__(self, state: TradingState, orders: Orders, trader_data: dict, product: Symbol, span: int, best_only: bool = True) -> None:
         super().__init__(state, orders)
         self._trading_data = trader_data
         self._product = product
         self._span = span
+        self._best_only = best_only
     
     def run(self):
         price = ema(self._state, self._trading_data, self._product, self._span)
         if price is None:
             return 
 
-        s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=self._product, acceptable_ask_price=price, acceptable_bid_price=price)
+        s = AcceptablePriceStrategy(state=self._state, orders=self._orders, product=self._product, acceptable_ask_price=price, acceptable_bid_price=price, best_only=self._best_only)
         s.run()
-
-
 
 class AcceptablePriceStrategy(Strategy):
     """
     Buys and sell product based on an acceptable price.
     """
-    def __init__(self, state: TradingState, orders: Orders, product: Symbol, acceptable_bid_price: int, acceptable_ask_price: int) -> None:
+    def __init__(self, 
+                 state: TradingState, 
+                 orders: Orders, product: Symbol,
+                 acceptable_bid_price: int,
+                 acceptable_ask_price: int,
+                 best_only: bool = True) -> None:
+
         super().__init__(state, orders)
         self._product = product
         self._acceptable_bid_price = acceptable_bid_price
         self._acceptable_ask_price = acceptable_ask_price
-    
+        self._best_only = best_only
+
     def run(self):
-        print("Acceptable price : " + str(self._acceptable_ask_price))
+        order_depth = self._state.order_depths.get(self._product)
 
-        best_ask, best_ask_amount = get_best_ask(self._state, self._product) 
-        if best_ask and best_ask_amount is not None:
-            if int(best_ask) < self._acceptable_ask_price:
-                self._orders.place_order(self._product, best_ask, -best_ask_amount)
+        if order_depth is None:
+            return
+        
+        if len(order_depth.sell_orders) != 0:
+            for ask, amount in order_depth.sell_orders.items():
+                if int(ask) < self._acceptable_ask_price:
+                    self._orders.place_order(self._product, ask, -amount)
 
-        best_bid, best_bid_amount = get_best_bid(self._state, self._product)
-        if best_bid and best_bid_amount is not None:
-            if int(best_bid) > self._acceptable_bid_price:
-                self._orders.place_order(self._product, best_bid, -best_bid_amount)
+                if self._best_only:
+                    break
+
+        if len(order_depth.buy_orders) != 0:
+            for bid, amount in order_depth.buy_orders.items():
+                if int(bid) > self._acceptable_bid_price:
+                    self._orders.place_order(self._product, bid, -amount)
+
+                if self._best_only:
+                    break
 
 class SpreadTradingStrategy(Strategy):
     def __init__(self, state: TradingState, orders: Orders, portfolio_1: list[Symbol], portfolio_1_price: int, portfolio_2: list[Symbol], portfolio_2_price: int, spread_mean: float, spread_std: float, threshold: float) -> None:
