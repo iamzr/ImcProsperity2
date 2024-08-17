@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datamodel import TradingState
 from orders import Orders
 from products import AMETHYSTS, CHOCOLATE, COCONUT, COCONUT_COUPON, GIFT_BASKET, ROSES, STARFRUIT, STRAWBERRIES
-from strategies import AcceptablePriceStrategy, AcceptablePriceWithEmaStrategy, SpreadTradingStrategy, VanillaOptionsPricing, get_mid_price 
+from strategies import AcceptablePriceStrategy, AcceptablePriceWithEmaStrategy, MarketMakingStrategy, SpreadTradingStrategy, VanillaOptionsPricing, get_mid_price, get_spread 
 
 class Round(ABC):
     def __init__(self, state: TradingState, traderData: dict, orders: Orders):
@@ -34,6 +34,24 @@ class Round1(Round):
                                     best_only=False)
         s.run()
 
+        price = get_mid_price(state=self._state,
+                              symbol=AMETHYSTS)
+        
+        if price and self._state.position.get(AMETHYSTS) == 0:
+            spread = (get_spread(state=self._state,
+                            symbol=AMETHYSTS) or 0 ) / 2
+
+            acceptable_bid_price_amethysts = price - spread
+            acceptable_ask_price_amethysts = price + spread
+
+            s = MarketMakingStrategy(state=self._state,
+                                        orders=self._orders,
+                                        product=AMETHYSTS,
+                                        acceptable_ask_price=acceptable_ask_price_amethysts,
+                                        acceptable_bid_price=acceptable_bid_price_amethysts,
+                                        )
+            s.run()
+
         # star fruit
 
         starfruit_span = 6
@@ -46,6 +64,25 @@ class Round1(Round):
                                            best_only=False)
         s.run()
 
+        price = get_mid_price(state=self._state,
+                              symbol=STARFRUIT)
+        
+        if price and self._state.position.get(STARFRUIT) == 0:
+            spread = (get_spread(state=self._state,
+                            symbol=STARFRUIT) or 0 ) / 2
+
+            acceptable_bid_price_starfruit = price - spread
+            acceptable_ask_price_starfruit = price + spread
+
+            s = MarketMakingStrategy(state=self._state,
+                                        orders=self._orders,
+                                        product=STARFRUIT,
+                                        acceptable_ask_price=acceptable_ask_price_starfruit,
+                                        acceptable_bid_price=acceptable_bid_price_starfruit,
+                                        )
+            s.run()
+
+
 def get_gift_basket_price(chocolate, roses, strawberries):
     return 4 * chocolate + roses + 6 * strawberries
 
@@ -56,25 +93,42 @@ class Round3(Round):
 
         gift_basket_price = get_mid_price(self._state, GIFT_BASKET)
 
-        if gift_basket_price is None:
-            return
+        if gift_basket_price:
+            components_price = get_gift_basket_price(get_mid_price(self._state, CHOCOLATE), get_mid_price(self._state, ROSES), get_mid_price(self._state, STRAWBERRIES))
 
-        components_price = get_gift_basket_price(get_mid_price(self._state, CHOCOLATE), get_mid_price(self._state, ROSES), get_mid_price(self._state, STRAWBERRIES))
+            SPREAD_MEAN = 376.0862
+            SPREAD_STD = 76.354
 
-        SPREAD_MEAN = 376.0862
-        SPREAD_STD = 76.354
+            s = SpreadTradingStrategy(state=self._state, 
+                                      orders=self._orders, 
+                                      portfolio_1=combined_product, 
+                                      portfolio_1_price=int(gift_basket_price),
+                                      portfolio_2=component_products,
+                                      portfolio_2_price=int(components_price),
+                                      spread_mean=SPREAD_MEAN,
+                                      spread_std=SPREAD_STD,
+                                      threshold=1
+                                      )
+            s.run()
 
-        s = SpreadTradingStrategy(state=self._state, 
-                                  orders=self._orders, 
-                                  portfolio_1=combined_product, 
-                                  portfolio_1_price=int(gift_basket_price),
-                                  portfolio_2=component_products,
-                                  portfolio_2_price=int(components_price),
-                                  spread_mean=SPREAD_MEAN,
-                                  spread_std=SPREAD_STD,
-                                  threshold=1
-                                  )
-        s.run()
+        for product in component_products:
+            price = get_mid_price(state=self._state,
+                                  symbol=product)
+        
+            if price: # and self._state.position.get(product) == 0:
+                spread = (get_spread(state=self._state,
+                                symbol=product) or 0 ) / 2
+
+                acceptable_bid_price = price - spread
+                acceptable_ask_price = price + spread
+
+                s = MarketMakingStrategy(state=self._state,
+                                            orders=self._orders,
+                                            product=product,
+                                            acceptable_ask_price=acceptable_ask_price,
+                                            acceptable_bid_price=acceptable_bid_price,
+                                            )
+                s.run()
 
 class Round4(Round):
     def _run(self):

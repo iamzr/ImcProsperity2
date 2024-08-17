@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from math import isclose
 import pandas as pd
-from datamodel import Order, OrderDepth, Symbol, TradingState
+from datamodel import Symbol, TradingState
 from orders import Orders
-from products import CHOCOLATE, GIFT_BASKET, ROSES, STRAWBERRIES
-from products import CHOCOLATE, ROSES, STRAWBERRIES
 from math import exp, log, pi
+
+from products import POSITION_LIMITS
 
 def _ema(price_history: list[float], span: int) -> int:
     """
@@ -56,6 +56,15 @@ def get_mid_price(state: TradingState, symbol: Symbol):
     
     return None
 
+def get_spread(state: TradingState, symbol: Symbol):
+    best_ask, _ = get_best_ask(state, symbol)
+    best_bid, _ = get_best_bid(state, symbol)
+
+    if best_ask and best_bid:
+        return best_ask - best_bid
+    
+    return None
+
 class Strategy(ABC):
     def __init__(self, state: TradingState, orders: Orders) -> None:
         self._state = state
@@ -64,6 +73,25 @@ class Strategy(ABC):
     @abstractmethod    
     def run(self):
         raise NotImplementedError()
+
+class MarketMakingStrategy(Strategy):
+    def __init__(self, state: TradingState, orders: Orders, product: Symbol, acceptable_bid_price: int, acceptable_ask_price: int) -> None:
+        super().__init__(state, orders)
+        self._product = product
+        self._acceptable_bid_price = acceptable_bid_price
+        self._acceptable_ask_price = acceptable_ask_price
+
+    def run(self):
+        position = self._state.position.get(self._product) or 0
+
+        position_limit = POSITION_LIMITS[self._product]
+
+        # TODO: Need to figure out best way to determine how much to buy and sell
+        # TODO: Figure out some risk management techniques to be used here
+        amount = abs(position_limit - position) // 2
+
+        self._orders.place_order(self._product, self._acceptable_ask_price, -amount)
+        self._orders.place_order(self._product, self._acceptable_bid_price, amount)
        
 class AcceptablePriceWithEmaStrategy(Strategy):
     def __init__(self, state: TradingState, orders: Orders, trader_data: dict, product: Symbol, span: int, best_only: bool = True) -> None:
@@ -104,9 +132,15 @@ class AcceptablePriceStrategy(Strategy):
         if order_depth is None:
             return
         
+        total_amount = 0
         if len(order_depth.sell_orders) != 0:
             for ask, amount in order_depth.sell_orders.items():
                 if int(ask) < self._acceptable_ask_price:
+
+                    if total_amount -amount > POSITION_LIMITS[self._product]:
+                        break
+
+                    total_amount += -amount
                     self._orders.place_order(self._product, ask, -amount)
 
                 if self._best_only:
@@ -115,11 +149,18 @@ class AcceptablePriceStrategy(Strategy):
         if len(order_depth.buy_orders) != 0:
             for bid, amount in order_depth.buy_orders.items():
                 if int(bid) > self._acceptable_bid_price:
+
+                    if total_amount - amount > POSITION_LIMITS[self._product]:
+                        break
+
+                    total_amount += -amount
+
                     self._orders.place_order(self._product, bid, -amount)
 
                 if self._best_only:
                     break
 
+        
 class SpreadTradingStrategy(Strategy):
     def __init__(self, state: TradingState, orders: Orders, portfolio_1: list[Symbol], portfolio_1_price: int, portfolio_2: list[Symbol], portfolio_2_price: int, spread_mean: float, spread_std: float, threshold: float) -> None:
         super().__init__(state, orders)
