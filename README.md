@@ -34,7 +34,7 @@ pip install -r requirements.txt
 This will install all packages listed in requirements.txt necessary for running the trader.
 
 ## Usage
-To test your trader's performance, use the provided backtester:
+To test the trader's performance, use the provided backtester:
 
 ```commandline
 prosperity2bt trader.py <round_number>
