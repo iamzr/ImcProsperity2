@@ -72,34 +72,34 @@ class Round3(Round):
 
         implied_price = 0
         for symbol, ratio in ratios.items():
-            # best_bid, best_bid_vol = get_best_bid(state=self._state, symbol=symbol)
-            # best_ask, best_ask_vol = get_best_ask(state=self._state, symbol=symbol) 
+            best_bid, best_bid_vol = get_best_bid(state=self._state, symbol=symbol)
+            best_ask, best_ask_vol = get_best_ask(state=self._state, symbol=symbol) 
 
-            # if best_bid is None or best_ask is None or best_bid_vol is None or best_ask_vol is None:
-            #     return 
+            if best_bid is None or best_ask is None or best_bid_vol is None or best_ask_vol is None:
+                return 
 
             # # TODO: figure out how to handle when there's no bids or asks
-            # implied_bid += ) * ratio
-            # implied_ask += (best_ask ) * ratio
+            implied_bid += best_bid * ratio
+            implied_ask += best_ask  * ratio
 
-            # implied_bid_vol = min(best_bid_vol // ratio, implied_bid_vol)
-            # implied_ask_vol = max(best_ask_vol // ratio, implied_ask_vol)
+            implied_bid_vol = min(best_bid_vol // ratio, implied_bid_vol)
+            implied_ask_vol = max(best_ask_vol // ratio, implied_ask_vol)
 
-            implied_price += get_mid_price(state=self._state, symbol=symbol) * ratio
+            # implied_price += get_mid_price(state=self._state, symbol=symbol) * ratio
 
         
         # synthetic_orderdepth.buy_orders[implied_bid] = implied_bid_vol
         # synthetic_orderdepth.sell_orders[implied_ask_vol] = implied_ask_vol
 
-        # if implied_ask_vol == inf or implied_bid_vol == inf:
-        #     return 
+        if implied_ask_vol == inf or implied_bid_vol == inf:
+            return 
 
-        # synthetic_ask = implied_ask
-        # synthetic_bid = implied_bid
+        synthetic_ask = implied_ask
+        synthetic_bid = implied_bid
 
 
         # Step 2: calcaulte spread between synthetic and actual
-        synthetic_mid_price = implied_price
+        synthetic_mid_price = (implied_ask + implied_bid) / 2 
 
 
         spread = actual_mid_price - synthetic_mid_price
@@ -109,37 +109,41 @@ class Round3(Round):
 
         z_score = (spread - SPREAD_MEAN) / SPREAD_STD
         # step 4  calculate what to buy and sell
-        threshold =  1
+        threshold =  2
 
         if z_score > threshold:
             # sell gift baskets at best bid
             best_bid, best_bid_amount = get_best_bid(self._state, GIFT_BASKET)
-            self._orders.place_order(GIFT_BASKET, best_bid, -best_bid_amount)
+
+            amount = min(best_bid_amount, implied_bid)
+            self._orders.place_order(GIFT_BASKET, best_bid, -amount)
 
             # # buy syntheics
-            # for symbol, ratio in ratios.items():
-            #     if symbol == ROSES:
-            #         continue
+            for symbol, ratio in ratios.items():
+                # if symbol == ROSES:
+                #     continue
 
-            #     vol = best_bid_amount * ratio
+                vol = amount * ratio
 
-            #     best_ask , _ = get_best_ask(self._state, symbol=symbol)
-            #     self._orders.place_order(symbol=symbol, price=best_ask, quantity=vol)
+                best_ask , _ = get_best_ask(self._state, symbol=symbol)
+                self._orders.place_order(symbol=symbol, price=best_ask, quantity=-vol)
 
         elif z_score < -threshold:
             # buy gift baskets at best ask
             best_ask, best_ask_amount = get_best_ask(self._state, GIFT_BASKET)
+
+            amount = min(best_ask_amount, implied_ask)
             self._orders.place_order(GIFT_BASKET,best_ask, -best_ask_amount)
 
             # sell synthetics
-            # for symbol, ratio in ratios.items():
-            #     if symbol == ROSES:
-            #         continue
+            for symbol, ratio in ratios.items():
+                if symbol == ROSES:
+                    continue
                     
-            #     vol = best_ask_amount * ratio
+                vol = amount * ratio
 
-            #     best_bid , _ = get_best_bid(self._state, symbol=symbol)
-            #     self._orders.place_order(symbol=symbol, price=best_bid, quantity=-vol)
+                best_bid , _ = get_best_bid(self._state, symbol=symbol)
+                self._orders.place_order(symbol=symbol, price=best_bid, quantity=-vol)
     
 
 
