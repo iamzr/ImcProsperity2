@@ -147,19 +147,19 @@ class SpreadTradingStrategy(Strategy):
                 best_ask, best_ask_amount = get_best_ask(self._state, product)
                 self._orders.place_order(product ,best_ask, -best_ask_amount)
 
-        elif isclose(z_score, 0.0, abs_tol=0.1):
-            for product in self._portfolio_2:
-                pos = self._state.position.get(product)
+        # elif isclose(z_score, 0.0, abs_tol=0.1):
+        #     for product in self._portfolio_2:
+        #         pos = self._state.position.get(product)
 
-                if not pos:
-                    continue
+        #         if not pos:
+        #             continue
 
-                if pos > 0:
-                    best_bid, _ = get_best_bid(self._state, product)
-                    self._orders.place_order(product, best_bid, -pos)
-                elif pos < 0:
-                    best_ask, _ = get_best_ask(self._state, product)
-                    self._orders.place_order(product, best_ask, -pos)
+        #         if pos > 0:
+        #             best_bid, _ = get_best_bid(self._state, product)
+        #             self._orders.place_order(product, best_bid, -pos)
+        #         elif pos < 0:
+        #             best_ask, _ = get_best_ask(self._state, product)
+        #             self._orders.place_order(product, best_ask, -pos)
 
 class VanillaOptionsPricing():
     def _norm_cdf(self, x):
