@@ -60,8 +60,8 @@ class Round3(Round):
         # Step 1: calculate orderdepth for synthetic made up of the best bid and asks of underlying
         ratios = {
             CHOCOLATE: 4,
-            ROSES: 6,
-            STRAWBERRIES: 1
+            ROSES: 1,
+            STRAWBERRIES: 6
             
         }
 
@@ -69,32 +69,37 @@ class Round3(Round):
         implied_ask = 0
         implied_bid_vol = inf
         implied_ask_vol = -inf
+
+        implied_price = 0
         for symbol, ratio in ratios.items():
-            best_bid, best_bid_vol = get_best_bid(state=self._state, symbol=symbol)
-            best_ask, best_ask_vol = get_best_ask(state=self._state, symbol=symbol) 
+            # best_bid, best_bid_vol = get_best_bid(state=self._state, symbol=symbol)
+            # best_ask, best_ask_vol = get_best_ask(state=self._state, symbol=symbol) 
 
-            if best_bid is None or best_ask is None or best_bid_vol is None or best_ask_vol is None:
-                return 
+            # if best_bid is None or best_ask is None or best_bid_vol is None or best_ask_vol is None:
+            #     return 
 
-            # TODO: figure out how to handle when there's no bids or asks
-            implied_bid += (best_bid ) * ratio
-            implied_ask += (best_ask ) * ratio
+            # # TODO: figure out how to handle when there's no bids or asks
+            # implied_bid += ) * ratio
+            # implied_ask += (best_ask ) * ratio
 
-            implied_bid_vol = min(best_bid_vol // ratio, implied_bid_vol)
-            implied_ask_vol = max(best_ask_vol // ratio, implied_ask_vol)
+            # implied_bid_vol = min(best_bid_vol // ratio, implied_bid_vol)
+            # implied_ask_vol = max(best_ask_vol // ratio, implied_ask_vol)
+
+            implied_price += get_mid_price(state=self._state, symbol=symbol) * ratio
+
         
         # synthetic_orderdepth.buy_orders[implied_bid] = implied_bid_vol
         # synthetic_orderdepth.sell_orders[implied_ask_vol] = implied_ask_vol
 
-        if implied_ask_vol == inf or implied_bid_vol == inf:
-            return 
+        # if implied_ask_vol == inf or implied_bid_vol == inf:
+        #     return 
 
-        synthetic_ask = implied_ask
-        synthetic_bid = implied_bid
+        # synthetic_ask = implied_ask
+        # synthetic_bid = implied_bid
 
 
         # Step 2: calcaulte spread between synthetic and actual
-        synthetic_mid_price = (synthetic_ask + synthetic_bid) // 2
+        synthetic_mid_price = implied_price
 
 
         spread = actual_mid_price - synthetic_mid_price
@@ -113,6 +118,9 @@ class Round3(Round):
 
             # # buy syntheics
             # for symbol, ratio in ratios.items():
+            #     if symbol == ROSES:
+            #         continue
+
             #     vol = best_bid_amount * ratio
 
             #     best_ask , _ = get_best_ask(self._state, symbol=symbol)
@@ -125,6 +133,9 @@ class Round3(Round):
 
             # sell synthetics
             # for symbol, ratio in ratios.items():
+            #     if symbol == ROSES:
+            #         continue
+                    
             #     vol = best_ask_amount * ratio
 
             #     best_bid , _ = get_best_bid(self._state, symbol=symbol)
